@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, DollarSign, TrendingUp, CreditCard, Lock, Handshake, HelpCircle, Paperclip, X, CheckCircle, Loader2 } from 'lucide-react';
@@ -17,7 +17,7 @@ const CATS = [
   { slug: 'general_support',  icon: HelpCircle,  title: 'General Support',    desc: 'Anything else not covered above.' },
 ];
 
-export default function NewTicketPage() {
+function NewTicketPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const profile = useProfile();
@@ -275,5 +275,13 @@ export default function NewTicketPage() {
       </div>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>
+  );
+}
+
+export default function NewTicketPage() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}><Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} /></div>}>
+      <NewTicketPageInner />
+    </Suspense>
   );
 }
