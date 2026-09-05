@@ -45,6 +45,10 @@ export default function StaffTicketPage({ params }: { params: Promise<{ id: stri
   const [newMessageAlert, setNewMessageAlert] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const [staffList, setStaffList] = useState<Profile[]>([]);
+  const [showAssign, setShowAssign] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const assignRef = useRef<HTMLDivElement>(null);
   const attachRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -365,6 +369,54 @@ export default function StaffTicketPage({ params }: { params: Promise<{ id: stri
     setTicket(p => p ? { ...p, priority: priority as any } : p);
   };
 
+  // ── Staff list for assign dropdown ──────────────────────────────────
+  useEffect(() => {
+    const sb = createClient();
+    sb.from('profiles')
+      .select('id, full_name, email, role')
+      .in('role', ['admin', 'support_agent', 'finance', 'partnership_manager'])
+      .order('full_name', { ascending: true })
+      .then(({ data }) => setStaffList((data as any) ?? []));
+  }, []);
+
+  // Close assign dropdown on outside click
+  useEffect(() => {
+    if (!showAssign) return;
+    const handler = (e: MouseEvent) => {
+      if (assignRef.current && !assignRef.current.contains(e.target as Node)) {
+        setShowAssign(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showAssign]);
+
+  const assignTicket = async (staffMember: Profile | null) => {
+    if (!ticket) return;
+    setAssigning(true);
+    const sb = createClient();
+    await sb.from('tickets').update({
+      assigned_to: staffMember?.id ?? null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', id);
+
+    setTicket(p => p ? { ...p, assigned_to: staffMember?.id ?? null, assignee: staffMember as any } : p);
+
+    // Notify the assigned staff member
+    if (staffMember && profile) {
+      await sb.from('notifications').insert({
+        user_id:   staffMember.id,
+        title:     `Ticket ${ticket.ticket_number} assigned to you`,
+        message:   `${profile.full_name ?? profile.email} assigned ticket "${ticket.subject}" to you.`,
+        type:      'assigned',
+        ticket_id: id,
+      });
+    }
+
+    setShowAssign(false);
+    setAssigning(false);
+  };
+
   const isImage = (type: string) => type?.startsWith('image/');
   const fmtSize = (bytes: number) => bytes < 1024 * 1024
     ? `${(bytes / 1024).toFixed(1)} KB`
@@ -532,13 +584,109 @@ export default function StaffTicketPage({ params }: { params: Promise<{ id: stri
           ))}
         </select>
 
-        <button style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          backgroundColor: C.surface3, border: `1px solid ${C.border}`,
-          borderRadius: 5, padding: '5px 10px', color: C.textSub, fontSize: 12, cursor: 'pointer',
-        }}>
-          <UserPlus size={12} /> Assign
-        </button>
+        {/* Assign dropdown */}
+        <div ref={assignRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowAssign(p => !p)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              backgroundColor: (ticket as any).assignee ? C.accentDim : C.surface3,
+              border: `1px solid ${(ticket as any).assignee ? C.accentBorder : C.border}`,
+              borderRadius: 5, padding: '5px 12px',
+              color: (ticket as any).assignee ? C.accentHi : C.textSub,
+              fontSize: 12, cursor: 'pointer', transition: 'all 0.15s',
+              fontWeight: (ticket as any).assignee ? 600 : 400,
+            }}
+          >
+            <UserPlus size={12} />
+            {assigning ? 'Assigning…' : (ticket as any).assignee?.full_name ?? 'Assign'}
+          </button>
+
+          {showAssign && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+              width: 220, backgroundColor: C.surface,
+              border: `1px solid ${C.border}`, borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+              zIndex: 9999, overflow: 'hidden',
+              animation: 'fadeIn 0.15s ease-out',
+            }}>
+              <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  Assign to
+                </span>
+              </div>
+
+              {/* Unassign option */}
+              {(ticket as any).assignee && (
+                <div
+                  onClick={() => assignTicket(null)}
+                  style={{
+                    padding: '10px 12px', cursor: 'pointer', fontSize: 12,
+                    color: '#ef4444', borderBottom: `1px solid ${C.border}`,
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(239,68,68,0.08)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent'}
+                >
+                  <X size={12} /> Unassign
+                </div>
+              )}
+
+              <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                {staffList.length === 0 ? (
+                  <div style={{ padding: '16px 12px', fontSize: 12, color: C.textMuted, textAlign: 'center' }}>
+                    No staff members found
+                  </div>
+                ) : staffList.map(s => {
+                  const isCurrentAssignee = (ticket as any).assignee?.id === s.id || ticket.assigned_to === s.id;
+                  const roleColors: Record<string, string> = {
+                    admin: '#A855F7', support_agent: '#93C5FD',
+                    finance: '#4ADE80', partnership_manager: '#FB923C',
+                  };
+                  const roleLabels: Record<string, string> = {
+                    admin: 'Admin', support_agent: 'Support',
+                    finance: 'Finance', partnership_manager: 'Partnerships',
+                  };
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => !isCurrentAssignee && assignTicket(s)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 12px', cursor: isCurrentAssignee ? 'default' : 'pointer',
+                        backgroundColor: isCurrentAssignee ? C.accentDim : 'transparent',
+                        borderBottom: `1px solid ${C.border}`,
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={e => { if (!isCurrentAssignee) (e.currentTarget as HTMLDivElement).style.backgroundColor = C.surface2; }}
+                      onMouseLeave={e => { if (!isCurrentAssignee) (e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent'; }}
+                    >
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                        background: 'linear-gradient(135deg,#6D28D9,#A855F7)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, fontWeight: 700, color: '#fff',
+                      }}>
+                        {initials(s.full_name ?? s.email)}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {s.full_name ?? s.email}
+                          {isCurrentAssignee && <span style={{ marginLeft: 6, fontSize: 10, color: C.accentHi }}>✓ Assigned</span>}
+                        </div>
+                        <div style={{ fontSize: 10, color: roleColors[s.role] ?? C.textMuted }}>
+                          {roleLabels[s.role] ?? s.role}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Body ── */}
