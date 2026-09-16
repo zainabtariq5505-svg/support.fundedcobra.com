@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('');
@@ -21,8 +22,8 @@ export default function LoginPage() {
       const { error: authErr } = await sb.auth.signInWithPassword({ email: email.trim(), password });
       if (authErr) {
         setError(
-          authErr.message.toLowerCase().includes('invalid')    ? 'Incorrect email or password.' :
-          authErr.message.toLowerCase().includes('confirmed')  ? 'Please confirm your email first.' :
+          authErr.message.toLowerCase().includes('invalid')   ? 'Incorrect email or password.' :
+          authErr.message.toLowerCase().includes('confirmed') ? 'Please confirm your email first.' :
           authErr.message
         );
         setLoading(false);
@@ -30,13 +31,13 @@ export default function LoginPage() {
       }
       const { data: { user } } = await sb.auth.getUser();
       if (user) {
-        const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
-        window.location.href = ['support_agent','finance','partnership_manager','admin'].includes(profile?.role ?? '') ? '/staff/dashboard' : '/';
+        const { data: p } = await sb.from('profiles').select('role').eq('id', user.id).single();
+        window.location.href = ['support_agent','finance','partnership_manager','admin'].includes(p?.role ?? '') ? '/staff/dashboard' : '/';
       } else {
         window.location.href = '/';
       }
     } catch {
-      setError('Connection error. Please check your internet and try again.');
+      setError('Connection error. Please try again.');
       setLoading(false);
     }
   };
@@ -44,133 +45,140 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#0F1117',
+      backgroundColor: '#000000',
       display: 'flex',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      flexDirection: 'column',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
     }}>
-      {/* Left */}
-      <div style={{
-        width: 420,
-        flexShrink: 0,
-        backgroundColor: '#161B2E',
-        borderRight: '1px solid #1F2537',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '48px 44px',
-      }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 56 }}>
-          <img src="/logo/logo.png" alt="Funded Cobra" style={{ height: 32, width: 'auto', objectFit: 'contain' }}
-            onError={e => { (e.target as HTMLImageElement).style.display='none'; }}
-          />
-        </div>
-
-        <div style={{ marginBottom: 48 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#7B61FF', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Support Portal</p>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#F1F1F3', lineHeight: 1.3, marginBottom: 14, letterSpacing: '-0.01em' }}>
-            Funded Cobra<br />Support
-          </h1>
-          <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7 }}>
-            Manage your support tickets, track resolutions, and get help from our team.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {[
-            { label: 'Response time',  value: '< 2 hours'   },
-            { label: 'Availability',   value: '24 / 7'      },
-            { label: 'Satisfaction',   value: '98%'          },
-          ].map(s => (
-            <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 20, borderBottom: '1px solid #1F2537' }}>
-              <span style={{ fontSize: 13, color: '#6B7280' }}>{s.label}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#F1F1F3' }}>{s.value}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: 'auto', paddingTop: 48 }}>
-          <p style={{ fontSize: 12, color: '#374151' }}>© 2026 Funded Cobra. All rights reserved.</p>
-        </div>
-      </div>
-
-      {/* Right */}
-      <div style={{
-        flex: 1,
+      {/* Top nav — matches FC site */}
+      <nav style={{
+        height: 52,
+        borderBottom: '1px solid #1a1a1a',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '48px 40px',
+        padding: '0 32px',
+        gap: 16,
       }}>
-        <div style={{ width: '100%', maxWidth: 380 }}>
+        <Link href="https://fundedcobra.com" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Image src="/logo/logo.png" alt="Funded Cobra" width={120} height={28} style={{ objectFit: 'contain', height: 26, width: 'auto' }} />
+        </Link>
+        <span style={{ fontSize: 12, color: '#333', marginLeft: 4 }}>/</span>
+        <span style={{ fontSize: 13, color: '#555' }}>Support</span>
+      </nav>
 
-          <h2 style={{ fontSize: 22, fontWeight: 600, color: '#F1F1F3', marginBottom: 6, letterSpacing: '-0.01em' }}>
-            Sign in
-          </h2>
-          <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 32 }}>
-            Don't have an account?{' '}
-            <Link href="/signup" style={{ color: '#7B61FF', fontWeight: 500, textDecoration: 'none' }}>
-              Create one
-            </Link>
-          </p>
+      {/* Body */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+        <div style={{ width: '100%', maxWidth: 360 }}>
+
+          {/* Heading */}
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: '#ffffff', marginBottom: 6, letterSpacing: '-0.01em' }}>
+              Sign in to Support
+            </h1>
+            <p style={{ fontSize: 14, color: '#555' }}>
+              Don't have an account?{' '}
+              <Link href="/signup" style={{ color: '#4ade80', textDecoration: 'none' }}>
+                Create one
+              </Link>
+            </p>
+          </div>
 
           {error && (
-            <div style={{ backgroundColor: '#1F1014', border: '1px solid #3F1A23', borderRadius: 8, padding: '12px 14px', marginBottom: 22, fontSize: 13, color: '#F87171', lineHeight: 1.5 }}>
+            <div style={{
+              backgroundColor: '#110a0a',
+              border: '1px solid #3b1010',
+              borderRadius: 6,
+              padding: '11px 14px',
+              marginBottom: 20,
+              fontSize: 13,
+              color: '#f87171',
+              lineHeight: 1.5,
+            }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={{ fontSize: 13, color: '#9CA3AF', display: 'block', marginBottom: 6 }}>Email</label>
+              <label style={{ fontSize: 12, color: '#555', display: 'block', marginBottom: 6 }}>Email</label>
               <input
                 type="email" autoComplete="email" placeholder="you@example.com"
                 value={email} onChange={e => setEmail(e.target.value)}
-                style={{ width: '100%', padding: '11px 14px', backgroundColor: '#161B2E', border: '1px solid #1F2537', borderRadius: 8, color: '#F1F1F3', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color .15s' }}
-                onFocus={e => e.target.style.borderColor = '#7B61FF'}
-                onBlur={e => e.target.style.borderColor = '#1F2537'}
+                style={{
+                  width: '100%', padding: '10px 12px',
+                  backgroundColor: '#0d0d0d',
+                  border: '1px solid #222',
+                  borderRadius: 6,
+                  color: '#fff', fontSize: 14, outline: 'none',
+                  boxSizing: 'border-box', fontFamily: 'inherit',
+                  transition: 'border-color .15s',
+                }}
+                onFocus={e => e.target.style.borderColor = '#4ade80'}
+                onBlur={e => e.target.style.borderColor = '#222'}
               />
             </div>
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label style={{ fontSize: 13, color: '#9CA3AF' }}>Password</label>
-                <Link href="/forgot-password" style={{ fontSize: 13, color: '#7B61FF', textDecoration: 'none' }}>Forgot?</Link>
+                <label style={{ fontSize: 12, color: '#555' }}>Password</label>
+                <Link href="/forgot-password" style={{ fontSize: 12, color: '#4ade80', textDecoration: 'none' }}>Forgot?</Link>
               </div>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPw ? 'text' : 'password'} autoComplete="current-password" placeholder="••••••••"
                   value={password} onChange={e => setPassword(e.target.value)}
-                  style={{ width: '100%', padding: '11px 42px 11px 14px', backgroundColor: '#161B2E', border: '1px solid #1F2537', borderRadius: 8, color: '#F1F1F3', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color .15s' }}
-                  onFocus={e => e.target.style.borderColor = '#7B61FF'}
-                  onBlur={e => e.target.style.borderColor = '#1F2537'}
+                  style={{
+                    width: '100%', padding: '10px 40px 10px 12px',
+                    backgroundColor: '#0d0d0d',
+                    border: '1px solid #222',
+                    borderRadius: 6,
+                    color: '#fff', fontSize: 14, outline: 'none',
+                    boxSizing: 'border-box', fontFamily: 'inherit',
+                    transition: 'border-color .15s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = '#4ade80'}
+                  onBlur={e => e.target.style.borderColor = '#222'}
                 />
                 <button type="button" onClick={() => setShowPw(p => !p)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#4B5563', display: 'flex', padding: 0 }}>
-                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#444', display: 'flex', padding: 0 }}>
+                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
 
             <button type="submit" disabled={loading}
-              style={{ width: '100%', padding: '12px', backgroundColor: loading ? '#2A2D3A' : '#7B61FF', color: loading ? '#6B7280' : '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4, transition: 'background .15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              onMouseEnter={e => { if (!loading) (e.currentTarget).style.backgroundColor = '#6D52F5'; }}
-              onMouseLeave={e => { if (!loading) (e.currentTarget).style.backgroundColor = '#7B61FF'; }}
+              style={{
+                width: '100%', padding: '11px',
+                backgroundColor: loading ? '#111' : '#4ade80',
+                color: loading ? '#444' : '#000',
+                border: 'none', borderRadius: 6,
+                fontSize: 14, fontWeight: 600,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                marginTop: 4, transition: 'background .15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                letterSpacing: '-0.01em',
+              }}
+              onMouseEnter={e => { if (!loading) (e.currentTarget).style.backgroundColor = '#22c55e'; }}
+              onMouseLeave={e => { if (!loading) (e.currentTarget).style.backgroundColor = '#4ade80'; }}
             >
-              {loading ? <><span style={{ width: 14, height: 14, border: '2px solid #4B5563', borderTopColor: '#7B61FF', borderRadius: '50%', display: 'inline-block', animation: 'spin .7s linear infinite' }} /> Signing in…</> : 'Sign In'}
+              {loading ? (
+                <><span style={{ width: 13, height: 13, border: '2px solid #333', borderTopColor: '#4ade80', borderRadius: '50%', display: 'inline-block', animation: 'spin .7s linear infinite' }} /> Signing in…</>
+              ) : 'Sign In'}
             </button>
           </form>
 
-          <p style={{ marginTop: 28, fontSize: 12, color: '#374151', textAlign: 'center' }}>
-            <Link href="/terms" style={{ color: '#374151', textDecoration: 'none' }}>Terms</Link>
-            {' · '}
-            <Link href="/privacy" style={{ color: '#374151', textDecoration: 'none' }}>Privacy</Link>
-          </p>
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #111', display: 'flex', gap: 16, justifyContent: 'center' }}>
+            <Link href="/terms" style={{ fontSize: 12, color: '#333', textDecoration: 'none' }}>Terms</Link>
+            <Link href="/privacy" style={{ fontSize: 12, color: '#333', textDecoration: 'none' }}>Privacy</Link>
+            <a href="https://fundedcobra.com" style={{ fontSize: 12, color: '#333', textDecoration: 'none' }}>fundedcobra.com</a>
+          </div>
         </div>
       </div>
 
       <style>{`
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        input::placeholder { color: #374151; }
+        input::placeholder { color: #2a2a2a; }
+        input::-webkit-input-placeholder { color: #2a2a2a; }
       `}</style>
     </div>
   );
