@@ -1,54 +1,40 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle2, Zap, Shield, MessageSquare, Ticket } from 'lucide-react';
-import FCLogo from '@/components/shared/FCLogo';
+import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
 
-function StrengthBar({ password }: { password: string }) {
-  const checks = [
-    password.length >= 8,
-    /[A-Z]/.test(password),
-    /[0-9]/.test(password),
-    /[^A-Za-z0-9]/.test(password),
-  ];
-  const score = checks.filter(Boolean).length;
-  const colors = ['', '#ef4444', '#f97316', '#eab308', '#10b981'];
-  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-
-  if (!password) return null;
-
+function PwStrength({ pw }: { pw: string }) {
+  const score = [pw.length >= 8, /[A-Z]/.test(pw), /[0-9]/.test(pw), /[^A-Za-z0-9]/.test(pw)].filter(Boolean).length;
+  const cols  = ['#ef4444','#f97316','#eab308','#10b981'];
+  const labs  = ['Weak','Fair','Good','Strong'];
+  if (!pw) return null;
   return (
     <div style={{ marginTop: 8 }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
-        {[1,2,3,4].map(i => (
-          <div key={i} style={{
-            flex: 1, height: 3, borderRadius: 2,
-            backgroundColor: i <= score ? colors[score] : '#1E1E2E',
-            transition: 'background 0.2s',
-          }} />
+      <div style={{ display:'flex', gap:4, marginBottom:4 }}>
+        {[0,1,2,3].map(i => (
+          <div key={i} style={{ flex:1, height:3, borderRadius:2, backgroundColor: i < score ? cols[score-1] : '#1A1A2E', transition:'background .2s' }} />
         ))}
       </div>
-      <div style={{ fontSize: 11, color: colors[score], fontWeight: 600 }}>{labels[score]}</div>
+      <span style={{ fontSize:11, color: cols[score-1] ?? '#404060', fontWeight:600 }}>{labs[score-1] ?? ''}</span>
     </div>
   );
 }
 
 export default function SignupPage() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
-  const [showPw, setShowPw]     = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [errors, setErrors]     = useState<Record<string, string>>({});
-  const [focused, setFocused]   = useState('');
-  const [success, setSuccess]   = useState('');
+  const [form, setForm]     = useState({ name:'', email:'', password:'', confirm:'' });
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors]   = useState<Record<string,string>>({});
+  const [success, setSuccess] = useState('');
   const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.name.trim())                                e.name     = 'Full name is required';
-    if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) e.email    = 'Enter a valid email';
-    if (form.password.length < 8)                         e.password = 'At least 8 characters';
-    if (form.password !== form.confirm)                   e.confirm  = 'Passwords do not match';
+    const e: Record<string,string> = {};
+    if (!form.name.trim())                                  e.name     = 'Full name required';
+    if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))   e.email    = 'Valid email required';
+    if (form.password.length < 8)                           e.password = 'Min 8 characters';
+    if (form.password !== form.confirm)                     e.confirm  = "Passwords don't match";
     return e;
   };
 
@@ -56,309 +42,217 @@ export default function SignupPage() {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    setErrors({});
-    setLoading(true);
-
+    setErrors({}); setLoading(true);
     try {
       const sb = createClient();
       const { data, error } = await sb.auth.signUp({
-        email: form.email.trim(),
-        password: form.password,
+        email: form.email.trim(), password: form.password,
         options: { data: { full_name: form.name.trim() } },
       });
-
-      if (error) {
-        setErrors({ form: error.message });
-        setLoading(false);
-        return;
-      }
-
+      if (error) { setErrors({ form: error.message }); setLoading(false); return; }
       if (data.user && !data.session) {
-        setSuccess(`Check your email at ${form.email} for a confirmation link, then sign in.`);
+        setSuccess(form.email);
         setLoading(false);
         return;
       }
-
       window.location.href = '/';
     } catch {
-      setErrors({ form: 'Connection error. Please check your internet and try again.' });
+      setErrors({ form: 'Connection error. Please try again.' });
       setLoading(false);
     }
   };
 
-  const perks = [
-    { icon: Ticket,        text: 'Instant ticket tracking'         },
-    { icon: MessageSquare, text: 'Real-time replies from staff'     },
-    { icon: Zap,           text: 'File attachment support'          },
-    { icon: Shield,        text: 'Secure & encrypted portal'        },
-  ];
-
-  const inputStyle = (field: string, hasError?: boolean): React.CSSProperties => ({
-    width: '100%',
-    paddingLeft: 44,
-    paddingRight: field === 'password' || field === 'confirm' ? 48 : 16,
-    paddingTop: 13,
-    paddingBottom: 13,
-    backgroundColor: '#0E0E12',
-    border: `1.5px solid ${hasError ? 'rgba(239,68,68,0.4)' : focused === field ? 'rgba(168,85,247,0.5)' : '#1E1E2E'}`,
-    borderRadius: 10,
-    color: '#F2F2F5',
-    fontSize: 14,
-    outline: 'none',
-    boxSizing: 'border-box' as const,
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-    boxShadow: hasError ? 'none' : focused === field ? '0 0 0 3px rgba(168,85,247,0.08)' : 'none',
+  const iStyle = (k: string): React.CSSProperties => ({
+    width:'100%', padding:'13px 16px',
+    backgroundColor:'#0E0E1C', border:`1px solid ${errors[k] ? 'rgba(239,68,68,0.4)' : '#1A1A2E'}`,
+    borderRadius:10, color:'#F0F0FF', fontSize:14, outline:'none',
+    boxSizing:'border-box', transition:'border-color .2s, box-shadow .2s', fontFamily:'inherit',
   });
 
-  const iconColor = (field: string) => focused === field ? '#A855F7' : '#404060';
-
-  // Success state
-  if (success) {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#060608', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
-        <div style={{ textAlign: 'center', maxWidth: 420, padding: '0 24px' }}>
-          <div style={{ fontSize: 56, marginBottom: 20 }}>📬</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#F2F2F5', marginBottom: 12, letterSpacing: '-0.02em' }}>
-            Check your inbox
-          </h1>
-          <p style={{ fontSize: 14, color: '#60607A', lineHeight: 1.7, marginBottom: 28 }}>{success}</p>
-          <Link href="/login" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '12px 28px',
-            background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-            color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 700,
-            textDecoration: 'none',
-            boxShadow: '0 4px 16px rgba(124,58,237,0.35)',
-          }}>
-            Go to Sign In <ArrowRight size={15} />
-          </Link>
+  if (success) return (
+    <div style={{ minHeight:'100vh', background:'#08080F', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'ui-sans-serif,system-ui,sans-serif' }}>
+      <div style={{ textAlign:'center', maxWidth:420, padding:'0 24px' }}>
+        <div style={{ width:72, height:72, borderRadius:'50%', background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.2)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px' }}>
+          <span style={{ fontSize:32 }}>📬</span>
         </div>
+        <h1 style={{ fontSize:26, fontWeight:800, color:'#F0F0FF', marginBottom:12, letterSpacing:'-0.02em' }}>Check your inbox</h1>
+        <p style={{ fontSize:14, color:'#50506A', lineHeight:1.7, marginBottom:28 }}>
+          We sent a confirmation link to <strong style={{ color:'#A855F7' }}>{success}</strong>.<br />
+          Click it to activate your account, then sign in.
+        </p>
+        <Link href="/login" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'12px 28px', background:'linear-gradient(135deg,#6D28D9,#A855F7)', color:'#fff', borderRadius:10, fontSize:14, fontWeight:700, textDecoration:'none', boxShadow:'0 4px 16px rgba(109,40,217,0.4)' }}>
+          Go to Sign In <ArrowRight size={15} />
+        </Link>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#060608',
-      display: 'flex',
-      fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
-    }}>
-      {/* ── Left panel ── */}
-      <div style={{
-        width: 400,
-        flexShrink: 0,
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '48px 44px',
-        background: 'linear-gradient(160deg, #0f0f1a 0%, #0e0e12 60%, #0a0a10 100%)',
-        borderRight: '1px solid #1a1a2e',
-      }}>
-        <div style={{ position: 'absolute', top: -80, left: -80, width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(109,40,217,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: 40, right: -60, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+    <div style={{ minHeight:'100vh', display:'flex', fontFamily:'ui-sans-serif,system-ui,sans-serif', backgroundColor:'#08080F' }}>
 
-        <div style={{ marginBottom: 48, position: 'relative', zIndex: 1 }}>
-          <FCLogo size="md" />
-        </div>
+      {/* ── Left decorative panel ── */}
+      <div style={{ width:'42%', maxWidth:520, background:'linear-gradient(145deg,#0D0B1E 0%,#110D2A 40%,#0A0818 100%)', display:'flex', flexDirection:'column', padding:'52px 52px', position:'relative', overflow:'hidden', borderRight:'1px solid rgba(139,92,246,0.08)' }}>
+        <div style={{ position:'absolute', inset:0, opacity:0.04, backgroundImage:'linear-gradient(rgba(139,92,246,1) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,1) 1px,transparent 1px)', backgroundSize:'40px 40px', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top:-100, left:-100, width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle,rgba(109,40,217,0.18) 0%,transparent 65%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom:-60, right:-80, width:280, height:280, borderRadius:'50%', background:'radial-gradient(circle,rgba(168,85,247,0.1) 0%,transparent 65%)', pointerEvents:'none' }} />
 
-        <div style={{ position: 'relative', zIndex: 1, marginBottom: 36 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#A855F7', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 14 }}>
-            JOIN TODAY
+        {/* Logo */}
+        <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', gap:12, marginBottom:60 }}>
+          <div style={{ width:44, height:44, borderRadius:12, background:'linear-gradient(135deg,#6D28D9,#A855F7)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 20px rgba(109,40,217,0.4)' }}>
+            <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
+              <path d="M6 29 C5 18 12 8 20 6 C20 6 17 14 14 19 C11 24 8 27 6 29Z" fill="rgba(255,255,255,0.9)" />
+              <path d="M34 29 C35 18 28 8 20 6 C20 6 23 14 26 19 C29 24 32 27 34 29Z" fill="rgba(255,255,255,0.9)" />
+              <ellipse cx="20" cy="26" rx="10" ry="11" fill="white" />
+              <ellipse cx="16.5" cy="23" rx="2.2" ry="2.5" fill="#6D28D9" />
+              <ellipse cx="23.5" cy="23" rx="2.2" ry="2.5" fill="#6D28D9" />
+            </svg>
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.03em', color: '#ffffff', marginBottom: 16 }}>
-            FUNDED COBRA<br />
-            <span style={{ background: 'linear-gradient(90deg, #A855F7, #C084FC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              SUPPORT
-            </span>
+          <div>
+            <div style={{ fontSize:15, fontWeight:800, color:'#F0F0FF' }}>Funded Cobra</div>
+            <div style={{ fontSize:11, color:'rgba(168,85,247,0.8)', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase' }}>Support Portal</div>
+          </div>
+        </div>
+
+        {/* Hero text */}
+        <div style={{ position:'relative', zIndex:1, flex:1 }}>
+          <h1 style={{ fontSize:34, fontWeight:900, color:'#F0F0FF', lineHeight:1.1, letterSpacing:'-0.04em', marginBottom:16 }}>
+            Join thousands<br />of funded<br />
+            <span style={{ background:'linear-gradient(135deg,#A855F7 0%,#C084FC 100%)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>traders</span>.
           </h1>
-          <p style={{ fontSize: 14, color: '#6B6B80', lineHeight: 1.7, maxWidth: 280 }}>
-            Create your free account to get instant access to our support team.
+          <p style={{ fontSize:14, color:'rgba(180,180,210,0.55)', lineHeight:1.7, marginBottom:36, maxWidth:300 }}>
+            Create your free account and get access to expert support, real-time ticket tracking, and instant responses.
           </p>
+
+          {/* Benefits */}
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            {[
+              'Instant ticket submission & tracking',
+              'Real-time chat with support agents',
+              'File attachment & screenshot sharing',
+              'Priority queue for urgent issues',
+              'Multi-language support available',
+            ].map(item => (
+              <div key={item} style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ width:20, height:20, borderRadius:'50%', background:'rgba(74,222,128,0.12)', border:'1px solid rgba(74,222,128,0.25)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <Check size={11} color="#4ADE80" />
+                </div>
+                <span style={{ fontSize:13, color:'rgba(180,180,210,0.55)' }}>{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', zIndex: 1 }}>
-          {perks.map(({ icon: Icon, text }) => (
-            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <CheckCircle2 size={15} color="#A855F7" style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: 13, color: '#7070A0' }}>{text}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: 'auto', paddingTop: 40, position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#4ADE80', boxShadow: '0 0 6px #4ADE80' }} />
-          <span style={{ fontSize: 11, color: '#404050' }}>Funded Cobra Support Portal v2.0</span>
+        {/* Bottom */}
+        <div style={{ position:'relative', zIndex:1, marginTop:40, display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ width:6, height:6, borderRadius:'50%', backgroundColor:'#4ADE80', boxShadow:'0 0 6px #4ADE80' }} />
+          <span style={{ fontSize:11, color:'#303050' }}>Funded Cobra Support Portal v2.0</span>
         </div>
       </div>
 
-      {/* ── Right panel ── */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '48px 40px',
-        overflowY: 'auto',
-        background: '#060608',
-      }}>
-        <div style={{ width: '100%', maxWidth: 420 }}>
+      {/* ── Form panel ── */}
+      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'52px 40px', background:'#08080F', overflowY:'auto' }}>
+        <div style={{ width:'100%', maxWidth:420 }}>
 
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 26, fontWeight: 800, color: '#F2F2F5', letterSpacing: '-0.02em', marginBottom: 8 }}>
-              Create account
-            </h2>
-            <p style={{ fontSize: 14, color: '#60607A' }}>
-              Already have an account?{' '}
-              <Link href="/login" style={{ color: '#A855F7', fontWeight: 600, textDecoration: 'none' }}>Sign in</Link>
+          <div style={{ marginBottom:32 }}>
+            <h2 style={{ fontSize:26, fontWeight:800, color:'#F0F0FF', letterSpacing:'-0.03em', marginBottom:10 }}>Create account</h2>
+            <p style={{ fontSize:14, color:'#50506A' }}>
+              Already have one?{' '}
+              <Link href="/login" style={{ color:'#A855F7', fontWeight:600, textDecoration:'none' }}>Sign in →</Link>
             </p>
           </div>
 
           {errors.form && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: 24 }}>
-              <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: 'rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}>!</span>
-              </div>
-              <span style={{ fontSize: 13, color: '#FCA5A5', lineHeight: 1.5 }}>{errors.form}</span>
+            <div style={{ backgroundColor:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.18)', borderLeft:'3px solid #ef4444', borderRadius:8, padding:'12px 16px', marginBottom:22, fontSize:13, color:'#FCA5A5', lineHeight:1.5 }}>
+              {errors.form}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:15 }}>
 
-            {/* Full Name */}
+            {/* Name */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#7070A0', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Full Name</label>
-              <div style={{ position: 'relative' }}>
-                <User size={15} color={iconColor('name')} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.2s' }} />
-                <input
-                  placeholder="Your name"
-                  value={form.name}
-                  onChange={e => f('name', e.target.value)}
-                  onFocus={() => setFocused('name')}
-                  onBlur={() => setFocused('')}
-                  style={inputStyle('name', !!errors.name)}
-                />
-              </div>
-              {errors.name && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 5 }}>{errors.name}</div>}
+              <label style={{ fontSize:12, fontWeight:600, color:'#6060A0', marginBottom:7, display:'block', letterSpacing:'0.04em', textTransform:'uppercase' }}>Full Name</label>
+              <input placeholder="Your name" value={form.name} onChange={e => f('name',e.target.value)}
+                style={iStyle('name')}
+                onFocus={e => { e.target.style.borderColor='rgba(168,85,247,0.5)'; e.target.style.boxShadow='0 0 0 3px rgba(168,85,247,0.07)'; }}
+                onBlur={e => { e.target.style.borderColor=errors.name?'rgba(239,68,68,0.4)':'#1A1A2E'; e.target.style.boxShadow='none'; }}
+              />
+              {errors.name && <div style={{ fontSize:11, color:'#ef4444', marginTop:5 }}>{errors.name}</div>}
             </div>
 
             {/* Email */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#7070A0', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Email Address</label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={15} color={iconColor('email')} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.2s' }} />
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={e => f('email', e.target.value)}
-                  onFocus={() => setFocused('email')}
-                  onBlur={() => setFocused('')}
-                  style={inputStyle('email', !!errors.email)}
-                />
-              </div>
-              {errors.email && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 5 }}>{errors.email}</div>}
+              <label style={{ fontSize:12, fontWeight:600, color:'#6060A0', marginBottom:7, display:'block', letterSpacing:'0.04em', textTransform:'uppercase' }}>Email Address</label>
+              <input type="email" placeholder="you@example.com" value={form.email} onChange={e => f('email',e.target.value)}
+                style={iStyle('email')}
+                onFocus={e => { e.target.style.borderColor='rgba(168,85,247,0.5)'; e.target.style.boxShadow='0 0 0 3px rgba(168,85,247,0.07)'; }}
+                onBlur={e => { e.target.style.borderColor=errors.email?'rgba(239,68,68,0.4)':'#1A1A2E'; e.target.style.boxShadow='none'; }}
+              />
+              {errors.email && <div style={{ fontSize:11, color:'#ef4444', marginTop:5 }}>{errors.email}</div>}
             </div>
 
             {/* Password */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#7070A0', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={15} color={iconColor('password')} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.2s' }} />
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  placeholder="Min. 8 characters"
-                  value={form.password}
-                  onChange={e => f('password', e.target.value)}
-                  onFocus={() => setFocused('password')}
-                  onBlur={() => setFocused('')}
-                  style={inputStyle('password', !!errors.password)}
+              <label style={{ fontSize:12, fontWeight:600, color:'#6060A0', marginBottom:7, display:'block', letterSpacing:'0.04em', textTransform:'uppercase' }}>Password</label>
+              <div style={{ position:'relative' }}>
+                <input type={showPw?'text':'password'} placeholder="Min. 8 characters" value={form.password} onChange={e => f('password',e.target.value)}
+                  style={{ ...iStyle('password'), paddingRight:44 }}
+                  onFocus={e => { e.target.style.borderColor='rgba(168,85,247,0.5)'; e.target.style.boxShadow='0 0 0 3px rgba(168,85,247,0.07)'; }}
+                  onBlur={e => { e.target.style.borderColor=errors.password?'rgba(239,68,68,0.4)':'#1A1A2E'; e.target.style.boxShadow='none'; }}
                 />
-                <button type="button" onClick={() => setShowPw(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#404060', padding: 0, display: 'flex' }}>
-                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                <button type="button" onClick={() => setShowPw(p=>!p)} style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#404060', display:'flex', padding:0 }}>
+                  {showPw ? <EyeOff size={15}/> : <Eye size={15}/>}
                 </button>
               </div>
-              <StrengthBar password={form.password} />
-              {errors.password && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 5 }}>{errors.password}</div>}
+              <PwStrength pw={form.password} />
+              {errors.password && <div style={{ fontSize:11, color:'#ef4444', marginTop:5 }}>{errors.password}</div>}
             </div>
 
-            {/* Confirm Password */}
+            {/* Confirm */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#7070A0', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Confirm Password</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={15} color={iconColor('confirm')} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.2s' }} />
-                <input
-                  type="password"
-                  placeholder="Repeat your password"
-                  value={form.confirm}
-                  onChange={e => f('confirm', e.target.value)}
-                  onFocus={() => setFocused('confirm')}
-                  onBlur={() => setFocused('')}
-                  style={inputStyle('confirm', !!errors.confirm)}
+              <label style={{ fontSize:12, fontWeight:600, color:'#6060A0', marginBottom:7, display:'block', letterSpacing:'0.04em', textTransform:'uppercase' }}>Confirm Password</label>
+              <div style={{ position:'relative' }}>
+                <input type="password" placeholder="Repeat password" value={form.confirm} onChange={e => f('confirm',e.target.value)}
+                  style={{ ...iStyle('confirm'), paddingRight:44 }}
+                  onFocus={e => { e.target.style.borderColor='rgba(168,85,247,0.5)'; e.target.style.boxShadow='0 0 0 3px rgba(168,85,247,0.07)'; }}
+                  onBlur={e => { e.target.style.borderColor=errors.confirm?'rgba(239,68,68,0.4)':'#1A1A2E'; e.target.style.boxShadow='none'; }}
                 />
                 {form.confirm && form.confirm === form.password && (
-                  <CheckCircle2 size={15} color="#10b981" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }} />
+                  <div style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)', width:18, height:18, borderRadius:'50%', background:'rgba(74,222,128,0.15)', border:'1px solid rgba(74,222,128,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <Check size={10} color="#4ADE80" />
+                  </div>
                 )}
               </div>
-              {errors.confirm && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 5 }}>{errors.confirm}</div>}
+              {errors.confirm && <div style={{ fontSize:11, color:'#ef4444', marginTop:5 }}>{errors.confirm}</div>}
             </div>
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: loading ? '#2a2a3a' : 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                color: loading ? '#60607A' : 'white',
-                border: 'none',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                transition: 'all 0.2s',
-                boxShadow: loading ? 'none' : '0 4px 16px rgba(124,58,237,0.35)',
-                marginTop: 4,
-                letterSpacing: '0.02em',
-              }}
-              onMouseEnter={e => {
-                if (!loading) {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(124,58,237,0.45)';
-                }
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = loading ? 'none' : '0 4px 16px rgba(124,58,237,0.35)';
-              }}
+            <button type="submit" disabled={loading}
+              style={{ width:'100%', padding:'14px', background: loading ? '#1A1A2A' : 'linear-gradient(135deg,#6D28D9 0%,#9333EA 50%,#A855F7 100%)', color: loading ? '#404060' : '#fff', border:'none', borderRadius:10, fontSize:14, fontWeight:700, cursor: loading?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'all .2s', marginTop:4, boxShadow: loading?'none':'0 4px 20px rgba(109,40,217,0.4)', letterSpacing:'0.01em' }}
+              onMouseEnter={e => { if(!loading){ (e.currentTarget).style.transform='translateY(-2px)'; (e.currentTarget).style.boxShadow='0 8px 28px rgba(109,40,217,0.5)'; } }}
+              onMouseLeave={e => { (e.currentTarget).style.transform='translateY(0)'; (e.currentTarget).style.boxShadow=loading?'none':'0 4px 20px rgba(109,40,217,0.4)'; }}
             >
               {loading ? (
-                <>
-                  <div style={{ width: 16, height: 16, border: '2px solid #60607A', borderTopColor: '#A855F7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                  Creating account…
-                </>
+                <><div style={{ width:16, height:16, border:'2px solid #404060', borderTopColor:'#9333EA', borderRadius:'50%', animation:'spin .7s linear infinite' }} /> Creating account…</>
               ) : (
-                <>Create Account <ArrowRight size={15} /></>
+                <>Create Free Account <ArrowRight size={15}/></>
               )}
             </button>
           </form>
 
-          <p style={{ fontSize: 11, color: '#30303A', textAlign: 'center', marginTop: 24, lineHeight: 1.7 }}>
-            By creating an account you agree to our{' '}
-            <Link href="/terms" style={{ color: '#50507A' }}>Terms of Service</Link>
-          </p>
+          <div style={{ marginTop:24, textAlign:'center' }}>
+            <span style={{ fontSize:11, color:'#282840' }}>
+              By signing up you agree to our{' '}
+              <Link href="/terms" style={{ color:'#303050' }}>Terms</Link>{' · '}
+              <Link href="/privacy" style={{ color:'#303050' }}>Privacy</Link>
+            </span>
+          </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        input::placeholder { color: #2E2E42; }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        input::placeholder { color: #252535; }
       `}</style>
     </div>
   );
