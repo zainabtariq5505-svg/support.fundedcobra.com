@@ -3,7 +3,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
-import Image from 'next/image';
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('');
@@ -50,20 +49,41 @@ export default function LoginPage() {
       flexDirection: 'column',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
     }}>
-      {/* Top nav — matches FC site */}
+      {/* Top nav */}
       <nav style={{
         height: 52,
         borderBottom: '1px solid #1a1a1a',
         display: 'flex',
         alignItems: 'center',
         padding: '0 32px',
-        gap: 16,
+        gap: 12,
       }}>
-        <Link href="https://fundedcobra.com" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Image src="/logo/logo.png" alt="Funded Cobra" width={120} height={28} style={{ objectFit: 'contain', height: 26, width: 'auto' }} />
+        <Link href="https://fundedcobra.com" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <img
+            src="/logo/logo.png"
+            alt="Funded Cobra"
+            style={{ height: 28, width: 'auto', objectFit: 'contain' }}
+            onError={e => {
+              const img = e.target as HTMLImageElement;
+              img.style.display = 'none';
+              const fallback = img.nextSibling as HTMLElement;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+          <span style={{
+            display: 'none',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#fff',
+            letterSpacing: '-0.01em',
+          }}>
+            <span style={{ color: '#4ade80' }}>●</span> FundedCobra
+          </span>
         </Link>
-        <span style={{ fontSize: 12, color: '#333', marginLeft: 4 }}>/</span>
-        <span style={{ fontSize: 13, color: '#555' }}>Support</span>
+        <span style={{ color: '#222', fontSize: 14 }}>/</span>
+        <span style={{ fontSize: 13, color: '#444' }}>Support</span>
       </nav>
 
       {/* Body */}
@@ -71,7 +91,7 @@ export default function LoginPage() {
         <div style={{ width: '100%', maxWidth: 360 }}>
 
           {/* Heading */}
-          <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 28 }}>
             <h1 style={{ fontSize: 20, fontWeight: 600, color: '#ffffff', marginBottom: 6, letterSpacing: '-0.01em' }}>
               Sign in to Support
             </h1>
@@ -94,7 +114,9 @@ export default function LoginPage() {
               color: '#f87171',
               lineHeight: 1.5,
             }}>
-              {error}
+              {error.includes('fetch') || error.includes('network') || error.includes('Connection')
+                ? 'Unable to connect. Please check your internet connection and try again.'
+                : error}
             </div>
           )}
 

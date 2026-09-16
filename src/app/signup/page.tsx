@@ -3,7 +3,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
-import Image from 'next/image';
 
 function PwStrength({ pw }: { pw: string }) {
   const score = [pw.length >= 8, /[A-Z]/.test(pw), /[0-9]/.test(pw), /[^A-Za-z0-9]/.test(pw)].filter(Boolean).length;
@@ -70,7 +69,9 @@ export default function SignupPage() {
   if (success) return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', flexDirection: 'column', fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", sans-serif' }}>
       <nav style={{ height: 52, borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', padding: '0 32px', gap: 16 }}>
-        <Image src="/logo/logo.png" alt="Funded Cobra" width={120} height={28} style={{ objectFit: 'contain', height: 26, width: 'auto' }} />
+        <img src="/logo/logo.png" alt="Funded Cobra" style={{ height: 26, width: 'auto', objectFit: 'contain' }}
+          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
         <span style={{ fontSize: 12, color: '#333' }}>/</span>
         <span style={{ fontSize: 13, color: '#555' }}>Support</span>
       </nav>
@@ -103,7 +104,9 @@ export default function SignupPage() {
       {/* Nav */}
       <nav style={{ height: 52, borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', padding: '0 32px', gap: 16 }}>
         <Link href="https://fundedcobra.com" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-          <Image src="/logo/logo.png" alt="Funded Cobra" width={120} height={28} style={{ objectFit: 'contain', height: 26, width: 'auto' }} />
+          <img src="/logo/logo.png" alt="Funded Cobra" style={{ height: 26, width: 'auto', objectFit: 'contain' }}
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
         </Link>
         <span style={{ fontSize: 12, color: '#333' }}>/</span>
         <span style={{ fontSize: 13, color: '#555' }}>Support</span>
