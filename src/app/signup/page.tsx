@@ -1,35 +1,54 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle2, Zap, Shield, MessageSquare, Ticket } from 'lucide-react';
 import FCLogo from '@/components/shared/FCLogo';
-import { C, btn, input } from '@/lib/ds';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/browser';
+import { createClient } from '@/lib/supabase/browser';
 
-function DiscordIcon() {
+function StrengthBar({ password }: { password: string }) {
+  const checks = [
+    password.length >= 8,
+    /[A-Z]/.test(password),
+    /[0-9]/.test(password),
+    /[^A-Za-z0-9]/.test(password),
+  ];
+  const score = checks.filter(Boolean).length;
+  const colors = ['', '#ef4444', '#f97316', '#eab308', '#10b981'];
+  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+
+  if (!password) return null;
+
   return (
-    <svg width="18" height="14" viewBox="0 0 24 18" fill="currentColor">
-      <path d="M20.317 1.492a19.825 19.825 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 1.492a.07.07 0 0 0-.032.027C.533 6.093-.32 10.555.099 14.961a.08.08 0 0 0 .031.055 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
-    </svg>
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
+        {[1,2,3,4].map(i => (
+          <div key={i} style={{
+            flex: 1, height: 3, borderRadius: 2,
+            backgroundColor: i <= score ? colors[score] : '#1E1E2E',
+            transition: 'background 0.2s',
+          }} />
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: colors[score], fontWeight: 600 }}>{labels[score]}</div>
+    </div>
   );
 }
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [form, setForm]     = useState({ name: '', email: '', password: '', confirm: '' });
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [focused, setFocused] = useState('');
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [showPw, setShowPw]     = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [errors, setErrors]     = useState<Record<string, string>>({});
+  const [focused, setFocused]   = useState('');
+  const [success, setSuccess]   = useState('');
   const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())                                      e.name     = 'Full name is required';
-    if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))       e.email    = 'Enter a valid email address';
-    if (form.password.length < 8)                               e.password = 'Password must be at least 8 characters';
-    if (form.password !== form.confirm)                         e.confirm  = 'Passwords do not match';
+    if (!form.name.trim())                                e.name     = 'Full name is required';
+    if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) e.email    = 'Enter a valid email';
+    if (form.password.length < 8)                         e.password = 'At least 8 characters';
+    if (form.password !== form.confirm)                   e.confirm  = 'Passwords do not match';
     return e;
   };
 
@@ -39,159 +58,308 @@ export default function SignupPage() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({});
     setLoading(true);
-    if (!isSupabaseConfigured()) { setErrors({ form: 'Supabase is not configured yet. Add your credentials to .env.local.' }); setLoading(false); return; }
-    const sb = createClient();
-    const { data, error } = await sb.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: { data: { full_name: form.name } },
-    });
-    if (error) { setErrors({ form: error.message }); setLoading(false); return; }
 
-    // If email confirmation is required, Supabase returns a user but no session.
-    // Inform the user clearly instead of silently redirecting to a broken state.
-    if (data.user && !data.session) {
-      setErrors({ form: 'Account created! Please check your email (' + form.email + ') and click the confirmation link before signing in.' });
+    try {
+      const sb = createClient();
+      const { data, error } = await sb.auth.signUp({
+        email: form.email.trim(),
+        password: form.password,
+        options: { data: { full_name: form.name.trim() } },
+      });
+
+      if (error) {
+        setErrors({ form: error.message });
+        setLoading(false);
+        return;
+      }
+
+      if (data.user && !data.session) {
+        setSuccess(`Check your email at ${form.email} for a confirmation link, then sign in.`);
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = '/';
+    } catch {
+      setErrors({ form: 'Connection error. Please check your internet and try again.' });
       setLoading(false);
-      return;
     }
-
-    // Hard redirect so session cookie is immediately available
-    window.location.href = '/';
   };
 
-  const handleDiscord = async () => {
-    if (!isSupabaseConfigured()) { alert('Supabase is not configured yet. Add your credentials to .env.local.'); return; }
-    const sb = createClient();
-    await sb.auth.signInWithOAuth({
-      provider: 'discord',
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
-    });
-  };
+  const perks = [
+    { icon: Ticket,        text: 'Instant ticket tracking'         },
+    { icon: MessageSquare, text: 'Real-time replies from staff'     },
+    { icon: Zap,           text: 'File attachment support'          },
+    { icon: Shield,        text: 'Secure & encrypted portal'        },
+  ];
 
-  const pwStr = () => {
-    const p = form.password; if (!p) return 0;
-    let s = 0;
-    if (p.length >= 8) s++;
-    if (/[A-Z]/.test(p)) s++;
-    if (/[0-9]/.test(p)) s++;
-    if (/[^A-Za-z0-9]/.test(p)) s++;
-    return s;
-  };
-  const strength = pwStr();
-  const strColors = ['','#E53E3E','#D69E2E','#D69E2E','#38A169'];
-  const strLabels = ['','Weak','Fair','Good','Strong'];
-
-  const iStyle = (name: string): React.CSSProperties => ({
-    ...input,
-    borderColor: errors[name] ? 'rgba(229,62,62,0.5)' : focused === name ? C.accentBorder : C.border,
-    boxShadow: focused === name && !errors[name] ? `0 0 0 3px ${C.accentDim}` : 'none',
+  const inputStyle = (field: string, hasError?: boolean): React.CSSProperties => ({
+    width: '100%',
+    paddingLeft: 44,
+    paddingRight: field === 'password' || field === 'confirm' ? 48 : 16,
+    paddingTop: 13,
+    paddingBottom: 13,
+    backgroundColor: '#0E0E12',
+    border: `1.5px solid ${hasError ? 'rgba(239,68,68,0.4)' : focused === field ? 'rgba(168,85,247,0.5)' : '#1E1E2E'}`,
+    borderRadius: 10,
+    color: '#F2F2F5',
+    fontSize: 14,
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    boxShadow: hasError ? 'none' : focused === field ? '0 0 0 3px rgba(168,85,247,0.08)' : 'none',
   });
 
-  return (
-    <div style={{ minHeight: '100vh', backgroundColor: C.bg, display: 'flex' }}>
-      {/* Left */}
-      <div style={{ width: 400, flexShrink: 0, backgroundColor: C.surface, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', padding: '48px 44px' }}>
-        <div style={{ height: 2, background: 'linear-gradient(90deg,#6D28D9,#A855F7)', borderRadius: 2, marginBottom: 40 }} />
-        <FCLogo size="lg" />
-        <div style={{ marginTop: 44 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: C.accentHi, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>JOIN TODAY</div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: 16 }}>
-            FUNDED COBRA<br /><span style={{ color: C.accentHi }}>SUPPORT</span>
+  const iconColor = (field: string) => focused === field ? '#A855F7' : '#404060';
+
+  // Success state
+  if (success) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#060608', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+        <div style={{ textAlign: 'center', maxWidth: 420, padding: '0 24px' }}>
+          <div style={{ fontSize: 56, marginBottom: 20 }}>📬</div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#F2F2F5', marginBottom: 12, letterSpacing: '-0.02em' }}>
+            Check your inbox
           </h1>
-          <p style={{ fontSize: 14, color: C.textSub, lineHeight: 1.7, maxWidth: 280 }}>Create your support account to manage tickets and communicate directly with our support team.</p>
+          <p style={{ fontSize: 14, color: '#60607A', lineHeight: 1.7, marginBottom: 28 }}>{success}</p>
+          <Link href="/login" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '12px 28px',
+            background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
+            color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 700,
+            textDecoration: 'none',
+            boxShadow: '0 4px 16px rgba(124,58,237,0.35)',
+          }}>
+            Go to Sign In <ArrowRight size={15} />
+          </Link>
         </div>
-        <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {['Instant ticket tracking','Real-time replies from staff','File attachment support','Discord identity integration'].map(item => (
-            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <CheckCircle2 size={14} color={C.accentHi} style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: 13, color: C.textSub }}>{item}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#060608',
+      display: 'flex',
+      fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+    }}>
+      {/* ── Left panel ── */}
+      <div style={{
+        width: 400,
+        flexShrink: 0,
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '48px 44px',
+        background: 'linear-gradient(160deg, #0f0f1a 0%, #0e0e12 60%, #0a0a10 100%)',
+        borderRight: '1px solid #1a1a2e',
+      }}>
+        <div style={{ position: 'absolute', top: -80, left: -80, width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(109,40,217,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 40, right: -60, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div style={{ marginBottom: 48, position: 'relative', zIndex: 1 }}>
+          <FCLogo size="md" />
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 1, marginBottom: 36 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#A855F7', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 14 }}>
+            JOIN TODAY
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.03em', color: '#ffffff', marginBottom: 16 }}>
+            FUNDED COBRA<br />
+            <span style={{ background: 'linear-gradient(90deg, #A855F7, #C084FC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              SUPPORT
+            </span>
+          </h1>
+          <p style={{ fontSize: 14, color: '#6B6B80', lineHeight: 1.7, maxWidth: 280 }}>
+            Create your free account to get instant access to our support team.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', zIndex: 1 }}>
+          {perks.map(({ icon: Icon, text }) => (
+            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <CheckCircle2 size={15} color="#A855F7" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: '#7070A0' }}>{text}</span>
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 'auto', paddingTop: 40, fontSize: 11, color: C.textMuted }}>Funded Cobra Support Portal · v2.0</div>
+
+        <div style={{ marginTop: 'auto', paddingTop: 40, position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#4ADE80', boxShadow: '0 0 6px #4ADE80' }} />
+          <span style={{ fontSize: 11, color: '#404050' }}>Funded Cobra Support Portal v2.0</span>
+        </div>
       </div>
 
-      {/* Right */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', overflowY: 'auto' }}>
-        <div style={{ width: '100%', maxWidth: 400 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 6 }}>Create account</h2>
-          <p style={{ fontSize: 13, color: C.textSub, marginBottom: 28 }}>
-            Already have an account?{' '}
-            <Link href="/login" style={{ color: C.accentHi, fontWeight: 500 }}>Sign in</Link>
-          </p>
+      {/* ── Right panel ── */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '48px 40px',
+        overflowY: 'auto',
+        background: '#060608',
+      }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
+
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 26, fontWeight: 800, color: '#F2F2F5', letterSpacing: '-0.02em', marginBottom: 8 }}>
+              Create account
+            </h2>
+            <p style={{ fontSize: 14, color: '#60607A' }}>
+              Already have an account?{' '}
+              <Link href="/login" style={{ color: '#A855F7', fontWeight: 600, textDecoration: 'none' }}>Sign in</Link>
+            </p>
+          </div>
 
           {errors.form && (
-            <div style={{ backgroundColor: 'rgba(229,62,62,0.08)', border: '1px solid rgba(229,62,62,0.25)', borderRadius: 7, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#FCA5A5' }}>{errors.form}</div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: 24 }}>
+              <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: 'rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}>!</span>
+              </div>
+              <span style={{ fontSize: 13, color: '#FCA5A5', lineHeight: 1.5 }}>{errors.form}</span>
+            </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-            {/* Name */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Full Name */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: C.textSub, marginBottom: 6, display: 'block' }}>Full Name</label>
-              <input placeholder="Your name" style={iStyle('name')} value={form.name}
-                onChange={e => f('name', e.target.value)} onFocus={() => setFocused('name')} onBlur={() => setFocused('')} />
-              {errors.name && <div style={{ fontSize: 11, color: '#FCA5A5', marginTop: 4 }}>{errors.name}</div>}
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#7070A0', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Full Name</label>
+              <div style={{ position: 'relative' }}>
+                <User size={15} color={iconColor('name')} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.2s' }} />
+                <input
+                  placeholder="Your name"
+                  value={form.name}
+                  onChange={e => f('name', e.target.value)}
+                  onFocus={() => setFocused('name')}
+                  onBlur={() => setFocused('')}
+                  style={inputStyle('name', !!errors.name)}
+                />
+              </div>
+              {errors.name && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 5 }}>{errors.name}</div>}
             </div>
+
             {/* Email */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: C.textSub, marginBottom: 6, display: 'block' }}>Email Address</label>
-              <input type="email" placeholder="you@example.com" style={iStyle('email')} value={form.email}
-                onChange={e => f('email', e.target.value)} onFocus={() => setFocused('email')} onBlur={() => setFocused('')} />
-              {errors.email && <div style={{ fontSize: 11, color: '#FCA5A5', marginTop: 4 }}>{errors.email}</div>}
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#7070A0', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Email Address</label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={15} color={iconColor('email')} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.2s' }} />
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={form.email}
+                  onChange={e => f('email', e.target.value)}
+                  onFocus={() => setFocused('email')}
+                  onBlur={() => setFocused('')}
+                  style={inputStyle('email', !!errors.email)}
+                />
+              </div>
+              {errors.email && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 5 }}>{errors.email}</div>}
             </div>
+
             {/* Password */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: C.textSub, marginBottom: 6, display: 'block' }}>Password</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#7070A0', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password</label>
               <div style={{ position: 'relative' }}>
-                <input type={showPw ? 'text' : 'password'} placeholder="Min. 8 characters"
-                  style={{ ...iStyle('password'), paddingRight: 40 }} value={form.password}
-                  onChange={e => f('password', e.target.value)} onFocus={() => setFocused('password')} onBlur={() => setFocused('')} />
-                <button type="button" onClick={() => setShowPw(!showPw)}
-                  style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', padding: 0 }}>
+                <Lock size={15} color={iconColor('password')} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.2s' }} />
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  placeholder="Min. 8 characters"
+                  value={form.password}
+                  onChange={e => f('password', e.target.value)}
+                  onFocus={() => setFocused('password')}
+                  onBlur={() => setFocused('')}
+                  style={inputStyle('password', !!errors.password)}
+                />
+                <button type="button" onClick={() => setShowPw(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#404060', padding: 0, display: 'flex' }}>
                   {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {form.password && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-                    {[1,2,3,4].map(i => (
-                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i <= strength ? strColors[strength] : C.border, transition: 'all 0.2s' }} />
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 11, color: strColors[strength] }}>{strLabels[strength]}</div>
-                </div>
-              )}
-              {errors.password && <div style={{ fontSize: 11, color: '#FCA5A5', marginTop: 4 }}>{errors.password}</div>}
-            </div>
-            {/* Confirm */}
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: C.textSub, marginBottom: 6, display: 'block' }}>Confirm Password</label>
-              <input type="password" placeholder="Repeat your password"
-                style={iStyle('confirm')} value={form.confirm}
-                onChange={e => f('confirm', e.target.value)} onFocus={() => setFocused('confirm')} onBlur={() => setFocused('')} />
-              {errors.confirm && <div style={{ fontSize: 11, color: '#FCA5A5', marginTop: 4 }}>{errors.confirm}</div>}
+              <StrengthBar password={form.password} />
+              {errors.password && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 5 }}>{errors.password}</div>}
             </div>
 
-            <button type="submit" disabled={loading}
-              style={{ ...btn.primary, width: '100%', padding: '11px', fontSize: 14, opacity: loading ? 0.6 : 1, marginTop: 4 }}>
-              {loading ? 'Creating account…' : 'Create Account'}
+            {/* Confirm Password */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#7070A0', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Confirm Password</label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} color={iconColor('confirm')} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.2s' }} />
+                <input
+                  type="password"
+                  placeholder="Repeat your password"
+                  value={form.confirm}
+                  onChange={e => f('confirm', e.target.value)}
+                  onFocus={() => setFocused('confirm')}
+                  onBlur={() => setFocused('')}
+                  style={inputStyle('confirm', !!errors.confirm)}
+                />
+                {form.confirm && form.confirm === form.password && (
+                  <CheckCircle2 size={15} color="#10b981" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }} />
+                )}
+              </div>
+              {errors.confirm && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 5 }}>{errors.confirm}</div>}
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: loading ? '#2a2a3a' : 'linear-gradient(135deg, #7C3AED, #A855F7)',
+                color: loading ? '#60607A' : 'white',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                transition: 'all 0.2s',
+                boxShadow: loading ? 'none' : '0 4px 16px rgba(124,58,237,0.35)',
+                marginTop: 4,
+                letterSpacing: '0.02em',
+              }}
+              onMouseEnter={e => {
+                if (!loading) {
+                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(124,58,237,0.45)';
+                }
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = loading ? 'none' : '0 4px 16px rgba(124,58,237,0.35)';
+              }}
+            >
+              {loading ? (
+                <>
+                  <div style={{ width: 16, height: 16, border: '2px solid #60607A', borderTopColor: '#A855F7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  Creating account…
+                </>
+              ) : (
+                <>Create Account <ArrowRight size={15} /></>
+              )}
             </button>
           </form>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
-            <div style={{ flex: 1, height: 1, backgroundColor: C.border }} />
-            <span style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>or continue with</span>
-            <div style={{ flex: 1, height: 1, backgroundColor: C.border }} />
-          </div>
-          <button onClick={handleDiscord} style={{ ...btn.discord, width: '100%', padding: '11px' }}>
-            <DiscordIcon /> Continue with Discord
-          </button>
-          <p style={{ fontSize: 11, color: C.textMuted, textAlign: 'center', marginTop: 24, lineHeight: 1.6 }}>
-            By creating an account you agree to our <Link href="/terms" style={{ color: C.textSub }}>Terms of Service</Link>
+          <p style={{ fontSize: 11, color: '#30303A', textAlign: 'center', marginTop: 24, lineHeight: 1.7 }}>
+            By creating an account you agree to our{' '}
+            <Link href="/terms" style={{ color: '#50507A' }}>Terms of Service</Link>
           </p>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        input::placeholder { color: #2E2E42; }
+      `}</style>
     </div>
   );
 }
