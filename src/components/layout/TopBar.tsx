@@ -5,10 +5,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Bell, ChevronDown, Ticket, Plus, Home,
   CheckCheck, X, User, Settings, LogOut,
-  MessageSquare, AlertCircle, Clock, CheckCircle2,
+  MessageSquare, AlertCircle, Clock, CheckCircle2, Menu,
 } from 'lucide-react';
 import { C, relativeTime, initials } from '@/lib/ds';
 import FCLogo from '@/components/shared/FCLogo';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 import { createClient } from '@/lib/supabase/browser';
 import { useProfile } from '@/lib/supabase/hooks';
 import type { Notification } from '@/types/database';
@@ -46,6 +47,7 @@ export default function TopBar() {
   const [notifs, setNotifs]         = useState<Notification[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const notifRef   = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -122,10 +124,10 @@ export default function TopBar() {
       <Link href="/" style={{ textDecoration: 'none', marginRight: 24, flexShrink: 0 }}>
         <FCLogo size="sm" />
       </Link>
-      <div style={{ width: 1, height: 20, backgroundColor: C.border, marginRight: 20, flexShrink: 0 }} />
+      <div style={{ width: 1, height: 20, backgroundColor: C.border, marginRight: 20, flexShrink: 0 }} className="desktop-only" />
 
-      {/* Nav */}
-      <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+      {/* Nav - desktop */}
+      <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }} className="desktop-only">
         {navLinks.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -137,8 +139,12 @@ export default function TopBar() {
         })}
       </nav>
 
+      {/* Spacer on mobile */}
+      <div style={{ flex: 1 }} className="mobile-only" />
+
       {/* Right */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <ThemeToggle size="sm" />
         {profile ? (
           <>
             {/* Notification bell */}
@@ -152,7 +158,7 @@ export default function TopBar() {
               </button>
 
               {showNotifs && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 360, backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: '0 16px 48px rgba(0,0,0,0.5)', overflow: 'hidden', zIndex: 300 }}>
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 360, maxWidth: 'calc(100vw - 32px)', backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: '0 16px 48px rgba(0,0,0,0.5)', overflow: 'hidden', zIndex: 300 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Notifications</span>
@@ -198,8 +204,8 @@ export default function TopBar() {
               )}
             </div>
 
-            {/* Profile button */}
-            <div ref={profileRef} style={{ position: 'relative' }}>
+            {/* Profile button - hidden on mobile, use hamburger instead */}
+            <div ref={profileRef} style={{ position: 'relative' }} className="desktop-only">
               <button onClick={() => { setShowProfile(p => !p); setShowNotifs(false); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 9px', borderRadius: 6, cursor: 'pointer', border: `1px solid ${showProfile ? C.border2 : C.border}`, backgroundColor: showProfile ? C.surface3 : C.surface2 }}>
                 <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#6D28D9,#A855F7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
@@ -251,6 +257,15 @@ export default function TopBar() {
                 </div>
               )}
             </div>
+
+            {/* Mobile hamburger */}
+            <button
+              className="mobile-only"
+              onClick={() => setMobileMenuOpen(p => !p)}
+              style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '6px 8px', color: C.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            >
+              {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
+            </button>
           </>
         ) : profile === null ? (
           <>
@@ -258,10 +273,62 @@ export default function TopBar() {
             <Link href="/signup" style={{ fontSize: 13, fontWeight: 600, color: '#fff', backgroundColor: C.accent, padding: '6px 14px', borderRadius: 5, textDecoration: 'none' }}>Create Account</Link>
           </>
         ) : (
-          /* loading skeleton */
           <div style={{ width: 120, height: 32, backgroundColor: C.surface3, borderRadius: 6 }} />
         )}
       </div>
+
+      {/* Mobile menu dropdown */}
+      {mobileMenuOpen && profile && (
+        <div style={{
+          position: 'fixed', top: 52, left: 0, right: 0,
+          backgroundColor: C.surface, borderBottom: `1px solid ${C.border}`,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          zIndex: 199, padding: '12px 16px',
+          animation: 'slideDown 0.2s ease-out',
+        }}>
+          {/* User info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#6D28D9,#A855F7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+              {initials(name)}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{name}</div>
+              <div style={{ fontSize: 11, color: C.textMuted }}>{profile.email}</div>
+            </div>
+          </div>
+
+          {/* Nav links */}
+          {navLinks.map(({ href, label: lbl, icon: Icon }) => (
+            <Link key={href} href={href} onClick={() => setMobileMenuOpen(false)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 8px', fontSize: 14, color: pathname === href ? C.accentHi : C.text, borderBottom: `1px solid ${C.border}`, textDecoration: 'none', fontWeight: pathname === href ? 600 : 400 }}>
+              <Icon size={16} /> {lbl}
+            </Link>
+          ))}
+
+          {/* Account links */}
+          {[
+            { icon: User,     label: 'My Profile',      href: '/dashboard/profile' },
+            { icon: Settings, label: 'Settings',         href: '/dashboard/settings' },
+          ].map(({ icon: Icon, label: lbl, href }) => (
+            <Link key={href} href={href} onClick={() => setMobileMenuOpen(false)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 8px', fontSize: 14, color: C.textSub, borderBottom: `1px solid ${C.border}`, textDecoration: 'none' }}>
+              <Icon size={16} /> {lbl}
+            </Link>
+          ))}
+
+          <button onClick={handleLogout}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 8px', fontSize: 14, color: '#F87171', background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', marginTop: 4 }}>
+            <LogOut size={16} /> Sign out
+          </button>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </header>
   );
 }

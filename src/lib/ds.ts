@@ -1,21 +1,27 @@
 // ── Funded Cobra Design System ────────────────────────────────────
-// Brand: Black base, purple (#A855F7 / #7C3AED) accent, white text
+// Uses CSS variables so dark/light mode works automatically.
+// Variables are set in globals.css on [data-theme="dark"|"light"]
 
 export const C = {
-  bg:           '#060608',
-  surface:      '#0E0E12',
-  surface2:     '#141418',
-  surface3:     '#1C1C22',
-  border:       '#2A2A35',
-  border2:      '#363642',
-  text:         '#F2F2F5',
-  textSub:      '#9090A0',
-  textMuted:    '#52525F',
-  accent:       '#8B5CF6',
-  accentHi:     '#A855F7',
-  accentDeep:   '#6D28D9',
-  accentDim:    'rgba(139,92,246,0.12)',
-  accentBorder: 'rgba(139,92,246,0.28)',
+  // Backgrounds
+  bg:           'var(--bg)',
+  surface:      'var(--surface)',
+  surface2:     'var(--surface2)',
+  surface3:     'var(--surface3)',
+  // Borders
+  border:       'var(--border)',
+  border2:      'var(--border2)',
+  // Text
+  text:         'var(--text)',
+  textSub:      'var(--text-sub)',
+  textMuted:    'var(--text-muted)',
+  // Accent (purple)
+  accent:       'var(--accent)',
+  accentHi:     'var(--accent-hi)',
+  accentDeep:   'var(--accent-deep)',
+  accentDim:    'var(--accent-dim)',
+  accentBorder: 'var(--accent-border)',
+  // Semantic
   danger:       '#E53E3E',
   dangerDim:    'rgba(229,62,62,0.1)',
   warn:         '#D69E2E',
@@ -28,14 +34,14 @@ export const C = {
 
 // ── Status metadata ────────────────────────────────────────────────
 export const STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  open:                 { label: 'Open',                  color: '#93C5FD', bg: 'rgba(147,197,253,0.08)', dot: '#93C5FD' },
-  in_progress:          { label: 'In Progress',           color: '#FCD34D', bg: 'rgba(252,211,77,0.08)',  dot: '#FCD34D' },
-  waiting_for_customer: { label: 'Waiting for Customer',  color: '#FB923C', bg: 'rgba(251,146,60,0.08)',  dot: '#FB923C' },
-  waiting_for_staff:    { label: 'Waiting for Staff',     color: '#C084FC', bg: 'rgba(192,132,252,0.08)', dot: '#C084FC' },
-  waiting_customer:     { label: 'Waiting for Customer',  color: '#FB923C', bg: 'rgba(251,146,60,0.08)',  dot: '#FB923C' },
-  waiting_staff:        { label: 'Waiting for Staff',     color: '#C084FC', bg: 'rgba(192,132,252,0.08)', dot: '#C084FC' },
-  resolved:             { label: 'Resolved',              color: '#4ADE80', bg: 'rgba(74,222,128,0.08)',  dot: '#4ADE80' },
-  closed:               { label: 'Closed',                color: '#6B7280', bg: 'rgba(107,114,128,0.08)', dot: '#6B7280' },
+  open:                 { label: 'Open',                 color: '#93C5FD', bg: 'rgba(147,197,253,0.08)', dot: '#93C5FD' },
+  in_progress:          { label: 'In Progress',          color: '#FCD34D', bg: 'rgba(252,211,77,0.08)',  dot: '#FCD34D' },
+  waiting_for_customer: { label: 'Waiting for Customer', color: '#FB923C', bg: 'rgba(251,146,60,0.08)',  dot: '#FB923C' },
+  waiting_for_staff:    { label: 'Waiting for Staff',    color: '#C084FC', bg: 'rgba(192,132,252,0.08)', dot: '#C084FC' },
+  waiting_customer:     { label: 'Waiting for Customer', color: '#FB923C', bg: 'rgba(251,146,60,0.08)',  dot: '#FB923C' },
+  waiting_staff:        { label: 'Waiting for Staff',    color: '#C084FC', bg: 'rgba(192,132,252,0.08)', dot: '#C084FC' },
+  resolved:             { label: 'Resolved',             color: '#4ADE80', bg: 'rgba(74,222,128,0.08)',  dot: '#4ADE80' },
+  closed:               { label: 'Closed',               color: '#6B7280', bg: 'rgba(107,114,128,0.08)', dot: '#6B7280' },
 };
 
 export const PRIORITY_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -54,37 +60,37 @@ export const pill = (color: string, bg: string): React.CSSProperties => ({
 });
 
 export const input: React.CSSProperties = {
-  width: '100%', backgroundColor: C.surface3,
-  border: `1px solid ${C.border}`, borderRadius: 6,
-  padding: '9px 12px', color: C.text, fontSize: 14,
+  width: '100%', backgroundColor: 'var(--surface3)',
+  border: `1px solid var(--border)`, borderRadius: 6,
+  padding: '9px 12px', color: 'var(--text)', fontSize: 14,
   outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s',
 };
 
 export const label: React.CSSProperties = {
-  fontSize: 12, fontWeight: 500, color: C.textSub, marginBottom: 5, display: 'block',
+  fontSize: 12, fontWeight: 500, color: 'var(--text-sub)', marginBottom: 5, display: 'block',
 };
 
 export const btn = {
   primary: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-    backgroundColor: C.accent, color: '#fff', border: 'none',
+    backgroundColor: 'var(--accent)', color: '#fff', border: 'none',
     padding: '9px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600,
     cursor: 'pointer', textDecoration: 'none', transition: 'background 0.15s',
   } as React.CSSProperties,
   secondary: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-    backgroundColor: C.surface2, color: C.text, border: `1px solid ${C.border}`,
+    backgroundColor: 'var(--surface2)', color: 'var(--text)', border: `1px solid var(--border)`,
     padding: '9px 18px', borderRadius: 6, fontSize: 13, fontWeight: 500,
     cursor: 'pointer', textDecoration: 'none',
   } as React.CSSProperties,
   ghost: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: 'transparent', color: C.textSub, border: 'none',
+    backgroundColor: 'transparent', color: 'var(--text-sub)', border: 'none',
     padding: '6px 10px', borderRadius: 6, fontSize: 13, cursor: 'pointer',
   } as React.CSSProperties,
   danger: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: C.dangerDim, color: C.danger,
+    backgroundColor: 'rgba(229,62,62,0.1)', color: '#E53E3E',
     border: `1px solid rgba(229,62,62,0.25)`,
     padding: '9px 18px', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer',
   } as React.CSSProperties,
@@ -96,7 +102,6 @@ export const btn = {
   } as React.CSSProperties,
 };
 
-/** Relative time formatter */
 export function relativeTime(ts: string): string {
   const diff = Date.now() - new Date(ts).getTime();
   const m = Math.floor(diff / 60000);
@@ -109,12 +114,10 @@ export function relativeTime(ts: string): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-/** Format date for display */
 export function fmtDate(ts: string): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-/** Initials from name */
 export function initials(name: string | null | undefined): string {
   if (!name) return '?';
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);

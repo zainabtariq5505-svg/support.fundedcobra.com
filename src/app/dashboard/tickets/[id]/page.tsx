@@ -7,6 +7,7 @@ import { C, STATUS_META, PRIORITY_META, pill, fmtDate, relativeTime, initials } 
 import { createClient } from '@/lib/supabase/browser';
 import { useProfile } from '@/lib/supabase/hooks';
 import StatusTimeline from '@/components/tickets/StatusTimeline';
+import TicketTimeline from '@/components/tickets/TicketTimeline';
 import LiveTypingPreview from '@/components/chat/LiveTypingPreview';
 import TicketClosedCard from '@/components/tickets/TicketClosedCard';
 import type { Ticket as TicketType, TicketMessage, Profile, TicketStatus } from '@/types/database';
@@ -608,6 +609,7 @@ export default function CustomerTicketPage({ params }: { params: Promise<{ id: s
         {/* Right panel */}
         <aside style={{ width: 268, flexShrink: 0, borderLeft: `1px solid ${C.border}`, backgroundColor: C.surface, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <StatusTimeline ticketId={id} currentStatus={ticket.status as TicketStatus} isStaff={false} />
+          <TicketTimeline ticketId={id} currentStatus={ticket.status as TicketStatus} isStaff={false} />
           <div style={{ height: 1, backgroundColor: C.border }} />
           <section>
             <h3 style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Ticket Details</h3>

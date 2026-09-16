@@ -3,28 +3,79 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
+/* ── Dark theme (default) ─────────────────────────────────── */
+:root, [data-theme="dark"] {
+  --bg:           #060608;
+  --surface:      #0E0E12;
+  --surface2:     #141418;
+  --surface3:     #1C1C22;
+  --border:       #2A2A35;
+  --border2:      #363642;
+  --text:         #F2F2F5;
+  --text-sub:     #9090A0;
+  --text-muted:   #52525F;
+  --accent:       #8B5CF6;
+  --accent-hi:    #A855F7;
+  --accent-deep:  #6D28D9;
+  --accent-dim:   rgba(139,92,246,0.12);
+  --accent-border:rgba(139,92,246,0.28);
+  --scrollbar:    #2A2A35;
+  --scrollbar-h:  #363642;
+  --shadow:       rgba(0,0,0,0.5);
+}
+
+/* ── Light theme ──────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:           #F5F5FA;
+  --surface:      #FFFFFF;
+  --surface2:     #F0F0F5;
+  --surface3:     #E8E8F0;
+  --border:       #D8D8E8;
+  --border2:      #C8C8DC;
+  --text:         #12121A;
+  --text-sub:     #50506A;
+  --text-muted:   #9090A8;
+  --accent:       #7C3AED;
+  --accent-hi:    #8B5CF6;
+  --accent-deep:  #6D28D9;
+  --accent-dim:   rgba(124,58,237,0.08);
+  --accent-border:rgba(124,58,237,0.22);
+  --scrollbar:    #D0D0E0;
+  --scrollbar-h:  #B8B8CC;
+  --shadow:       rgba(0,0,0,0.15);
+}
+
 body {
-  background: #060608;
-  color: #F2F2F5;
+  background: var(--bg);
+  color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
+  transition: background 0.2s, color 0.2s;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2A2A35; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #363642; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-h); }
 
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 input, textarea, select { font-family: inherit; }
-::placeholder { color: #52525F; }
+::placeholder { color: var(--text-muted); }
 *:focus-visible { outline: 2px solid rgba(139,92,246,0.5); outline-offset: 2px; }
 
-/* Subtle top accent stripe on auth pages */
 .auth-stripe {
   background: linear-gradient(90deg, #6D28D9, #8B5CF6, #A855F7);
   height: 2px;
   width: 100%;
+}
+
+/* ── Mobile utilities ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+  .mobile-hidden { display: none !important; }
+}
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
 }

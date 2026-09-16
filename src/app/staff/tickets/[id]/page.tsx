@@ -13,6 +13,7 @@ import VoiceRecorder from '@/components/chat/VoiceRecorder';
 import MessageSearch from '@/components/chat/MessageSearch';
 import CannedResponses from '@/components/chat/CannedResponses';
 import SLATimer from '@/components/tickets/SLATimer';
+import TicketTimeline from '@/components/tickets/TicketTimeline';
 import { playMessageSound, showDesktopNotification } from '@/lib/notifications';
 import type { Ticket as TicketType, TicketMessage, Profile, TicketStatus } from '@/types/database';
 
@@ -1167,6 +1168,12 @@ export default function StaffTicketPage({ params }: { params: Promise<{ id: stri
               { k: 'Priority', v: <span style={pill(pr.color, pr.bg)}>{pr.label}</span> },
               { k: 'Category', v: <span style={{ fontSize: 12, color: C.text }}>{ticket.category}</span> },
               { k: 'Assigned', v: <span style={{ fontSize: 12, color: (ticket as any).assignee ? C.text : C.textMuted }}>{(ticket as any).assignee?.full_name ?? 'Unassigned'}</span> },
+              { k: 'Language', v: (() => {
+                const langNote = notes.find(n => n.note?.startsWith('🌐 Customer prefers support in:'));
+                if (!langNote) return <span style={{ fontSize: 12, color: C.textMuted }}>English 🇬🇧</span>;
+                const match = langNote.note.match(/🌐 Customer prefers support in:\s*(.+)/);
+                return <span style={{ fontSize: 12, color: C.accentHi, fontWeight: 600 }}>{match?.[1]?.split('—')[0]?.trim() ?? 'Unknown'}</span>;
+              })() },
               { k: 'Created',  v: <span style={{ fontSize: 12, color: C.text }}>{fmtDate(ticket.created_at)}</span> },
               ...(ticket.account_id     ? [{ k: 'Account ID',     v: <span style={{ fontSize: 11, color: C.text, fontFamily: 'monospace' }}>{ticket.account_id}</span>     }] : []),
               ...(ticket.transaction_id ? [{ k: 'Transaction ID', v: <span style={{ fontSize: 11, color: C.text, fontFamily: 'monospace' }}>{ticket.transaction_id}</span> }] : []),
